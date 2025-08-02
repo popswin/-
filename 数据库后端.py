@@ -1,0 +1,154 @@
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi.middleware.cors import CORSMiddleware
+import os
+import uuid
+import json
+
+# 初始化FastAPI应用
+app = FastAPI(title="简易待办事项API")
+
+# 允许跨域请求（方便前端调用）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 开发环境允许所有来源
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 数据存储设置
+TODO_FILE = "todos.json"
+UPLOAD_FOLDER = "uploads"
+
+# 确保文件夹存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+# 初始化数据文件
+def init_todos():
+    if not os.path.exists(TODO_FILE):
+        with open(TODO_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f)
+
+
+# 加载待办事项
+def load_todos():
+    with open(TODO_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# 保存待办事项
+def save_todos(todos):
+    with open(TODO_FILE, "w", encoding="utf-8") as f:
+        json.dump(todos, f, ensure_ascii=False, indent=2)
+
+
+# 初始化数据
+init_todos()
+
+
+# API接口
+@app.get("/todos")
+def get_todos(tag: str = None, keyword: str = None):
+    """获取所有待办事项，支持标签筛选和关键词搜索"""
+    todos = load_todos()
+
+    # 标签筛选
+    if tag:
+        todos = set[]
+        for t in todos:
+            if t["tag"] == tag:
+                todos.append(t)
+
+    # 关键词搜索
+    if keyword:
+        keyword = keyword.lower()
+        todos = [t for t in todos if
+                 keyword in t["content"].lower() or
+                 keyword in t["tag"].lower()]
+
+    return todos
+
+
+@app.post("/todos")
+def add_todo(content: str = Form(...), tag: str = Form("无")):
+    """添加新的待办事项"""
+    todos = load_todos()
+
+    # 创建新待办事项
+    new_todo = {
+        "id": str(uuid.uuid4())[:8],  # 生成短ID
+        "content": content,
+        "tag": tag,
+        "completed": False,
+        "file": None
+    }
+
+    todos.append(new_todo)
+    save_todos(todos)
+    return new_todo
+
+
+@app.put("/todos/{todo_id}")
+def update_todo(todo_id: str, completed: bool = Form(...)):
+    """更新待办事项状态"""
+    todos = load_todos()
+
+    for todo in todos:
+        if todo["id"] == todo_id:
+            todo["completed"] = completed
+            save_todos(todos)
+            return todo
+
+    raise HTTPException(status_code=404, detail="待办事项不存在")
+
+
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: str):
+    """删除待办事项"""
+    todos = load_todos()
+
+    for i, todo in enumerate(todos):
+        if todo["id"] == todo_id:
+            # 如果有关联文件，一并删除
+            if todo["file"]:
+                file_path = os.path.join(UPLOAD_FOLDER, todo["file"])
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+            del todos[i]
+            save_todos(todos)
+            return {"message": "删除成功"}
+
+    raise HTTPException(status_code=404, detail="待办事项不存在")
+
+
+@app.post("/todos/{todo_id}/upload")
+async def upload_file(todo_id: str, file: UploadFile = File(...)):
+    """为待办事项上传文件"""
+    todos = load_todos()
+
+    # 查找待办事项
+    for todo in todos:
+        if todo["id"] == todo_id:
+            # 生成唯一文件名
+            file_id = f"{uuid.uuid4()}_{file.filename}"
+            file_path = os.path.join(UPLOAD_FOLDER, file_id)
+
+            # 保存文件
+            with open(file_path, "wb") as f:
+                while chunk := await file.read(1024 * 1024):  # 流式处理大文件
+                    f.write(chunk)
+
+            # 更新文件信息
+            todo["file"] = file_id
+            save_todos(todos)
+            return {"message": "文件上传成功", "file_id": file_id}
+
+    raise HTTPException(status_code=404, detail="待办事项不存在")
+
+
+# 运行服务器
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main.py", host="0.0.0.0", port=8000, reload=True)
