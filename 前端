@@ -68,7 +68,7 @@ def search_todos(todos, keyword):
 
 #文件上传
 def upload_file(todo_index):
-    """为指定待办事项上传文件（流式处理，支持大文件）"""
+    """为指定待办事项上传文件"""
     todos = load_todos()
 
     if 0 <= todo_index < len(todos):
