@@ -10,7 +10,7 @@ app = FastAPI(title="简易待办事项API")
 # 允许跨域请求（方便前端调用）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 开发环境允许所有来源
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -76,7 +76,7 @@ def add_todo(content: str = Form(...), tag: str = Form("无")):
 
     # 创建新待办事项
     new_todo = {
-        "id": str(uuid.uuid4())[:8],  # 生成短ID
+        "id": str(uuid.uuid4())[:8],  
         "content": content,
         "tag": tag,
         "completed": False,
@@ -136,7 +136,7 @@ async def upload_file(todo_id: str, file: UploadFile = File(...)):
 
             # 保存文件
             with open(file_path, "wb") as f:
-                while chunk := await file.read(1024 * 1024):  # 流式处理大文件
+                while chunk := await file.read(1024 * 1024):  
                     f.write(chunk)
 
             # 更新文件信息
