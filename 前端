@@ -13,7 +13,7 @@ def load_todos():
             for line in f.readlines():
                 line = line.strip()
                 if line:
-                    # 格式: 状态,内容,标签,文件名(可选)
+                    # 格式: 状态,内容,标签,文件名
                     parts = line.split(",", 3)
                     # 处理可能没有文件的情况
                     file_name = parts[3] if len(parts) > 3 else ""
@@ -157,7 +157,7 @@ def complete_todo():
 
 #删除事项
 def delete_todo():
-    """删除待办事项（包括关联文件）"""
+    """删除待办事项"""
     todos = load_todos()
     if not todos:
         print("没有待办事项")
