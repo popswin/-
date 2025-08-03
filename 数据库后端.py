@@ -7,7 +7,7 @@ import json
 # 初始化FastAPI应用
 app = FastAPI(title="简易待办事项API")
 
-# 允许跨域请求（方便前端调用）
+# 允许跨域请求
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -109,7 +109,6 @@ def delete_todo(todo_id: str):
 
     for i, todo in enumerate(todos):
         if todo["id"] == todo_id:
-            # 如果有关联文件，一并删除
             if todo["file"]:
                 file_path = os.path.join(UPLOAD_FOLDER, todo["file"])
                 if os.path.exists(file_path):
